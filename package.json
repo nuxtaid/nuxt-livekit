@@ -2,7 +2,14 @@
   "name": "nuxt-livekit",
   "version": "0.0.1",
   "description": "LiveKit integration for Nuxt: realtime video, audio, and data with client composables and server utilities",
-  "repository": "nuxtaid/nuxt-livekit",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nuxtaid/nuxt-livekit.git"
+  },
+  "homepage": "https://github.com/nuxtaid/nuxt-livekit#readme",
+  "bugs": {
+    "url": "https://github.com/nuxtaid/nuxt-livekit/issues"
+  },
   "license": "MIT",
   "keywords": [
     "nuxt",
@@ -12,7 +19,10 @@
     "realtime",
     "video",
     "audio",
-    "streaming"
+    "streaming",
+    "conferencing",
+    "voice",
+    "rooms"
   ],
   "type": "module",
   "exports": {
