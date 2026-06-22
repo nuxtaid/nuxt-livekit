@@ -1,6 +1,6 @@
 {
   "name": "nuxt-livekit",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "LiveKit integration for Nuxt: realtime video, audio, and data with client composables and server utilities",
   "repository": {
     "type": "git",
