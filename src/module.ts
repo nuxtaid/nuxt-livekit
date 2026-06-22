@@ -22,6 +22,9 @@ export default defineNuxtModule<ModuleOptions>({
   meta: {
     name: 'nuxt-livekit',
     configKey: 'livekit',
+    compatibility: {
+      nuxt: '>=3.0.0',
+    },
   },
   defaults: {
     wsUrl: '',
@@ -37,7 +40,7 @@ export default defineNuxtModule<ModuleOptions>({
     // Private runtime config (server-only)
     // Env mapping: NUXT_LIVEKIT_WS_URL, NUXT_LIVEKIT_API_KEY, NUXT_LIVEKIT_API_SECRET
     nuxt.options.runtimeConfig.livekit = defu(
-      nuxt.options.runtimeConfig.livekit as Record<string, unknown>,
+      nuxt.options.runtimeConfig.livekit,
       {
         wsUrl: options.wsUrl,
         apiKey: options.apiKey,
@@ -48,7 +51,7 @@ export default defineNuxtModule<ModuleOptions>({
     // Public runtime config (available on client + server)
     // Env mapping: NUXT_PUBLIC_LIVEKIT_WS_URL
     nuxt.options.runtimeConfig.public.livekit = defu(
-      nuxt.options.runtimeConfig.public.livekit as Record<string, unknown>,
+      nuxt.options.runtimeConfig.public.livekit,
       {
         wsUrl: options.wsUrl,
       },
