@@ -7,9 +7,10 @@
 [![License][license-src]][license-href]
 [![Nuxt][nuxt-src]][nuxt-href]
 
-[LiveKit](https://livekit.io/) integration for Nuxt. Add realtime video, audio, and data to your Nuxt application with auto-imported client composables and Nitro server utilities.
+[LiveKit](https://livekit.io/) integration for [Nuxt](https://nuxt.com). Add realtime video, audio, and data features to your Nuxt application with auto-imported client composables and Nitro server utilities.
 
 - [✨ &nbsp;Release Notes](/CHANGELOG.md)
+- [📖 &nbsp;Documentation](#usage)
 
 ## Features
 
@@ -18,14 +19,23 @@
 - ⚡ &nbsp;**Reactive state** — connection state, participants, active speakers, reconnection status, and event log
 - 🔐 &nbsp;**Secure by default** — API key/secret stay server-side via runtime config
 - 📦 &nbsp;**Zero config** — just add your LiveKit credentials and go
+- 🛡️ &nbsp;**SSR-safe** — composables are guarded to only run on the client
+
+## Compatibility
+
+| nuxt-livekit | Nuxt | livekit-client | livekit-server-sdk |
+| --- | --- | --- | --- |
+| `>=0.0.1` | `>=3.0.0` | `^2.x` | `^2.x` |
 
 ## Quick Setup
 
 Install the module:
 
 ```bash
-npx nuxt module add nuxt-livekit
+npx nuxi module add nuxt-livekit
 ```
+
+That's it! The module is now installed and you can start using it.
 
 ## Configuration
 
@@ -36,8 +46,6 @@ export default defineNuxtConfig({
   modules: ['nuxt-livekit'],
   livekit: {
     wsUrl: 'wss://your-project.livekit.cloud',
-    apiKey: process.env.LIVEKIT_API_KEY,
-    apiSecret: process.env.LIVEKIT_API_SECRET,
   },
 })
 ```
@@ -48,9 +56,27 @@ export default defineNuxtConfig({
 | `apiKey` | LiveKit API key (server-only) | Yes |
 | `apiSecret` | LiveKit API secret (server-only) | Yes |
 
-> **Note:** `apiKey` and `apiSecret` are never exposed to the client. Only `wsUrl` is available in the browser via `useRuntimeConfig().public.livekit.wsUrl`.
+> [!IMPORTANT]
+> `apiKey` and `apiSecret` are **never** exposed to the client. Only `wsUrl` is available in the browser via `useRuntimeConfig().public.livekit.wsUrl`.
 
-You can also use environment variables (`LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `LIVEKIT_WS_URL`) via Nuxt runtime config overrides.
+### Environment Variables
+
+Instead of hardcoding values in `nuxt.config.ts`, you can use environment variables with the standard Nuxt runtime config override convention:
+
+| Variable | Maps to |
+| --- | --- |
+| `NUXT_LIVEKIT_WS_URL` | `runtimeConfig.livekit.wsUrl` |
+| `NUXT_LIVEKIT_API_KEY` | `runtimeConfig.livekit.apiKey` |
+| `NUXT_LIVEKIT_API_SECRET` | `runtimeConfig.livekit.apiSecret` |
+| `NUXT_PUBLIC_LIVEKIT_WS_URL` | `runtimeConfig.public.livekit.wsUrl` |
+
+Create a `.env` file in your project root:
+
+```env
+NUXT_LIVEKIT_WS_URL=wss://your-project.livekit.cloud
+NUXT_LIVEKIT_API_KEY=your-api-key
+NUXT_LIVEKIT_API_SECRET=your-api-secret
+```
 
 ## Usage
 
@@ -58,7 +84,7 @@ You can also use environment variables (`LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`,
 
 #### `useLiveKitRoom(options?)`
 
-Manages a LiveKit `Room` instance with reactive state:
+Manages a LiveKit `Room` instance with reactive state. The room is automatically disconnected and cleaned up when the component is unmounted.
 
 ```vue
 <script setup>
@@ -80,15 +106,17 @@ await connect(token)
 </script>
 ```
 
+**Options:** Accepts all [`RoomOptions`](https://docs.livekit.io/client-sdk-js/interfaces/RoomOptions.html) from `livekit-client` (e.g. `adaptiveStream`, `dynacast`, `videoCaptureDefaults`).
+
 #### `useLiveKitToken(endpoint?)`
 
 Fetches a token from your server API route:
 
 ```vue
 <script setup>
-const { token, error, pending, fetchToken } = useLiveKitToken('/api/livekit/token')
+const { token, wsUrl, error, pending, fetchToken } = useLiveKitToken('/api/livekit/token')
 
-const t = await fetchToken({ roomName: 'my-room', participantName: 'user-1' })
+const response = await fetchToken({ roomName: 'my-room', participantName: 'user-1' })
 </script>
 ```
 
@@ -107,7 +135,6 @@ export default defineEventHandler(async (event) => {
 
   const token = await generateLiveKitToken(participantName, roomName, {
     name: participantName,
-    // Optional: customize grants
     grants: { canPublish: true, canSubscribe: true },
   })
 
@@ -137,7 +164,7 @@ await svc.deleteRoom('old-room')
 
 #### `useLiveKitWebhookReceiver()`
 
-Returns a `WebhookReceiver` for verifying incoming webhooks:
+Returns a `WebhookReceiver` for verifying incoming LiveKit webhooks:
 
 ```ts
 // server/api/livekit/webhook.post.ts
@@ -151,7 +178,49 @@ export default defineEventHandler(async (event) => {
 })
 ```
 
-## Contribution
+## Full Example
+
+A complete flow from joining a room to rendering participants:
+
+```vue
+<script setup>
+const roomName = ref('my-room')
+const userName = ref('')
+
+const { token, fetchToken } = useLiveKitToken()
+const {
+  connectionState,
+  remoteParticipants,
+  localParticipant,
+  connect,
+  disconnect,
+} = useLiveKitRoom({ adaptiveStream: true, dynacast: true })
+
+async function joinRoom() {
+  const { token: t, wsUrl } = await fetchToken({
+    roomName: roomName.value,
+    participantName: userName.value,
+  })
+  await connect(t, wsUrl)
+}
+</script>
+
+<template>
+  <div>
+    <div v-if="connectionState !== 'connected'">
+      <input v-model="userName" placeholder="Your name" />
+      <button @click="joinRoom">Join</button>
+    </div>
+    <div v-else>
+      <p>Connected as {{ localParticipant?.identity }}</p>
+      <p>{{ remoteParticipants.length }} other participant(s)</p>
+      <button @click="disconnect">Leave</button>
+    </div>
+  </div>
+</template>
+```
+
+## Contributing
 
 <details>
   <summary>Local development</summary>
@@ -171,10 +240,14 @@ export default defineEventHandler(async (event) => {
   
   # Run ESLint
   pnpm lint
+  pnpm lint:fix
   
   # Run Vitest
   pnpm test
   pnpm test:watch
+  
+  # Type check
+  pnpm test:types
   
   # Release new version
   pnpm release
