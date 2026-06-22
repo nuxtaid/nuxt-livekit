@@ -52,7 +52,7 @@ export function useLiveKitRoom(roomOptions?: RoomOptions): UseLiveKitRoomReturn 
   const events = ref<LiveKitRoomEvent[]>([])
 
   function addEvent(type: string, message: string) {
-    events.value = [...events.value.slice(-49), { timestamp: Date.now(), type, message }]
+    events.value = [...events.value.slice(-99), { timestamp: Date.now(), type, message }]
   }
 
   function syncParticipants() {
@@ -135,6 +135,9 @@ export function useLiveKitRoom(roomOptions?: RoomOptions): UseLiveKitRoomReturn 
   setupListeners(room.value)
 
   async function connect(token: string, url?: string) {
+    if (import.meta.server) {
+      throw new Error('[nuxt-livekit] useLiveKitRoom().connect() can only be called on the client.')
+    }
     const wsUrl = url || config.public.livekit.wsUrl
     if (!wsUrl) {
       throw new Error('[nuxt-livekit] No wsUrl configured. Set it in nuxt.config or pass it to connect().')
